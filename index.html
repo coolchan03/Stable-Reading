@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101c2b">
+  <meta name="description" content="FloatRead: an experimental motion-stabilized reading surface for your phone.">
+  <meta name="color-scheme" content="dark light">
+  <title>FloatRead · Motion-stabilized reading</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="FloatRead home">
+        <span class="mark" aria-hidden="true">≋</span><span>Float<span class="brand-light">Read</span></span>
+      </a>
+      <span class="eyebrow-header">A reading experiment <span class="version">v0.2</span></span>
+    </header>
+    <main>
+      <div class="intro">
+        <span class="section-kicker"><span class="tiny-dot"></span> LESS SHAKE. MORE STORY.</span>
+        <h1>Let the words <em>float.</em></h1>
+        <p>Try cushioning the little bumps that make reading in a moving vehicle so difficult. Powered by your phone's motion sensors, with a simulation mode for testing.</p>
+      </div>
+      <div class="layout">
+        <section class="reader-shell" id="readerShell" aria-label="Reading sample">
+          <div class="reader-toolbar">
+            <div><span class="reader-label">THE READING ROOM</span><span class="reader-chapter"> · A little journey</span></div>
+            <button class="quiet-button" id="focusButton" type="button" aria-pressed="false"><span aria-hidden="true">⤢</span> Focus view</button>
+          </div>
+          <div class="reader-window" id="readerWindow" tabindex="0" aria-label="Scrollable reading text">
+            <article class="reader-surface" id="readerSurface">
+              <div class="chapter-label" id="chapterLabel">A SHORT STORY · ONE</div>
+              <h2 id="storyTitle">The quiet between the miles</h2>
+              <div id="readerContent">
+                <p>There was a quiet kind of magic in the road ahead. The trees leaned toward the highway, and the morning sun flashed between their branches like a thousand little lanterns.</p>
+                <p>The car rolled over a rough seam in the pavement. A sentence shifted. Then another. It was a small movement, barely worth noticing, except that every little movement made the words harder to follow.</p>
+                <p>What if the page could soften those bumps? What if the letters could drift gently against the motion, instead of bouncing along with the screen?</p>
+                <p>It wouldn't stop the road from moving. It wouldn't make the car perfectly still. It might, however, give the eyes a quieter place to rest.</p>
+                <p>The hills continued past the window, one after another, and the story went on.</p>
+              </div>
+            </article>
+          </div>
+          <div class="reader-bottom">
+            <div><span class="legend-dot"></span><span id="readerState">Ready to test</span></div>
+            <div id="shiftReadout" aria-live="off">0.0 px offset</div>
+          </div>
+        </section>
+        <aside class="control-column" aria-label="Reader controls">
+          <section class="panel sensor-panel">
+            <div class="panel-heading">
+              <div><span class="overline">01 / THE INPUT</span><h2>Motion source</h2></div>
+              <span class="state-pill" id="sensorBadge" data-state="idle"><span class="state-dot"></span><span id="sensorBadgeText">Not connected</span></span>
+            </div>
+            <div class="action-grid">
+              <button class="button primary" id="enableSensors" type="button">Enable phone sensors</button>
+              <button class="button secondary" id="demoButton" type="button" aria-pressed="false">Simulate a road</button>
+            </div>
+            <div class="action-grid small-actions">
+              <button class="button lowkey" id="bumpButton" type="button">+ Add a bump</button>
+              <button class="button lowkey" id="calibrateButton" type="button">↻ Recalibrate</button>
+            </div>
+            <p class="helptext" id="sensorMessage" role="status">Tap Enable phone sensors in Chrome on your phone. Nothing is sent to a server.</p>
+            <div class="sensor-details">
+              <div><span>X ACCELERATION</span><strong id="axReadout">0.00</strong><small>m/s²</small><div class="bar"><i id="xBar"></i></div></div>
+              <div><span>Y ACCELERATION</span><strong id="ayReadout">0.00</strong><small>m/s²</small><div class="bar"><i id="yBar"></i></div></div>
+            </div>
+            <div class="footnote"><span id="frequencyReadout">0 events/sec</span><span id="motionType">Waiting for input</span></div>
+          </section>
+          <section class="panel tuning-panel">
+            <div class="panel-heading"><div><span class="overline">02 / THE RESPONSE</span><h2>Fine tune the feel</h2></div></div>
+            <label class="toggle-row" for="stabilizationSwitch">
+              <span><strong>Stabilization</strong><small>Compare with the effect turned off</small></span>
+              <input type="checkbox" id="stabilizationSwitch" checked role="switch"><span class="switch-track" aria-hidden="true"></span>
+            </label>
+            <div class="range-group">
+              <div class="range-heading"><label for="compensation">Compensation</label><output id="compensationOutput">70%</output></div>
+              <input id="compensation" type="range" min="0" max="150" step="5" value="70">
+              <p>How strongly the page pushes back against movement.</p>
+            </div>
+            <div class="range-group">
+              <div class="range-heading"><label for="smoothness">Damping</label><output id="smoothnessOutput">85%</output></div>
+              <input id="smoothness" type="range" min="30" max="160" step="5" value="85">
+              <p>Higher values settle the text with less bounce.</p>
+            </div>
+            <div class="range-group compact-range">
+              <div class="range-heading"><label for="fontSize">Text size</label><output id="fontSizeOutput">18 px</output></div>
+              <input id="fontSize" type="range" min="15" max="26" step="1" value="18">
+            </div>
+          </section>
+          <details class="panel content-panel">
+            <summary><span><span class="overline">03 / YOUR WORDS</span><strong>Read your own text</strong></span><span aria-hidden="true">＋</span></summary>
+            <div class="content-inner">
+              <label for="customText">Paste a passage or import a plain-text file</label>
+              <textarea id="customText" rows="6" placeholder="Paste your text here..."></textarea>
+              <div class="action-grid"><button class="button primary" id="applyText" type="button">Use this text</button><label class="button secondary file-label" for="fileInput">Import .txt / .md</label><input id="fileInput" type="file" accept=".txt,.md,.text,text/plain,text/markdown"></div>
+              <p class="helptext">Text is stored locally on this device and never uploaded.</p>
+            </div>
+          </details>
+        </aside>
+      </div>
+      <section class="notes"><div><span class="overline">BEFORE YOU TEST</span><h2>What the experiment can—and can't—do</h2></div><p>The accelerometer measures acceleration, not the motion of your eyes. FloatRead uses a bounded spring-and-damper response to soften brief jolts; it cannot perfectly lock text to your gaze. Use it only as a passenger, never while driving.</p></section>
+    </main>
+    <footer><span>FLOATREAD · OPEN EXPERIMENT</span><span>Runs locally in your browser · <a href="https://github.com/coolchan03/Stable-Reading" target="_blank" rel="noopener noreferrer">Source on GitHub</a></span></footer>
+  </div>
+</body>
+</html>

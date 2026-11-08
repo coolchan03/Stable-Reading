@@ -1,0 +1,13 @@
+{
+  "name": "FloatRead — Motion-stabilized Reader",
+  "short_name": "FloatRead",
+  "description": "Experimental on-device text stabilization using motion sensors.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d1724",
+  "theme_color": "#101c2b",
+  "icons": [
+    {"src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}
