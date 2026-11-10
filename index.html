@@ -18,7 +18,7 @@
       <a class="brand" href="./" aria-label="FloatRead home">
         <span class="mark" aria-hidden="true">≋</span><span>Float<span class="brand-light">Read</span></span>
       </a>
-      <span class="eyebrow-header">A reading experiment <span class="version">v0.2</span></span>
+      <span class="eyebrow-header">A reading experiment <span class="version">v0.3</span></span>
     </header>
     <main>
       <div class="intro">
@@ -44,6 +44,9 @@
                 <p>The hills continued past the window, one after another, and the story went on.</p>
               </div>
             </article>
+          </div>
+          <div class="anchor-layer" id="anchorLayer" aria-hidden="true">
+            <div class="anchor-dots" id="anchorDots"><div class="anchor-col left"></div><div class="anchor-col right"></div></div>
           </div>
           <div class="reader-bottom">
             <div><span class="legend-dot"></span><span id="readerState">Ready to test</span></div>
@@ -78,19 +81,41 @@
               <input type="checkbox" id="stabilizationSwitch" checked role="switch"><span class="switch-track" aria-hidden="true"></span>
             </label>
             <div class="range-group">
-              <div class="range-heading"><label for="compensation">Compensation</label><output id="compensationOutput">70%</output></div>
-              <input id="compensation" type="range" min="0" max="150" step="5" value="70">
+              <div class="range-heading"><label for="compensation">Compensation</label><output id="compensationOutput">100%</output></div>
+              <input id="compensation" type="range" min="0" max="250" step="5" value="100">
               <p>How strongly the page pushes back against movement.</p>
             </div>
             <div class="range-group">
-              <div class="range-heading"><label for="smoothness">Damping</label><output id="smoothnessOutput">85%</output></div>
+              <div class="range-heading"><label for="sideBoost">Side-to-side strength</label><output id="sideBoostOutput">100%</output></div>
+              <input id="sideBoost" type="range" min="50" max="300" step="10" value="100">
+              <p>Extra (or less) correction for left-right bumps only.</p>
+            </div>
+            <div class="range-group">
+              <div class="range-heading"><label for="smoothness">Bump filter</label><output id="smoothnessOutput">85%</output></div>
               <input id="smoothness" type="range" min="30" max="160" step="5" value="85">
-              <p>Higher values settle the text with less bounce.</p>
+              <p>Lower = react only to quick bumps. Higher = also follow slower sways.</p>
             </div>
             <div class="range-group compact-range">
               <div class="range-heading"><label for="fontSize">Text size</label><output id="fontSizeOutput">18 px</output></div>
-              <input id="fontSize" type="range" min="15" max="26" step="1" value="18">
+              <input id="fontSize" type="range" min="15" max="26" step="1" value="20">
             </div>
+            <div class="range-group compact-range">
+              <div class="range-heading"><label for="fontFamily">Typeface</label></div>
+              <select id="fontFamily">
+                <option value="Roboto,'Segoe UI',Arial,Helvetica,sans-serif">Clear sans (Roboto / Arial)</option>
+                <option value="Verdana,'DejaVu Sans',Tahoma,sans-serif">Wide sans (Verdana)</option>
+                <option value="Georgia,'Times New Roman',serif">Serif (Georgia)</option>
+                <option value="ui-monospace,Menlo,Consolas,'Courier New',monospace">Monospace</option>
+              </select>
+            </div>
+            <label class="toggle-row" for="boldText">
+              <span><strong>Heavier text</strong><small>Thicker strokes are easier to track while shaking</small></span>
+              <input type="checkbox" id="boldText" checked role="switch"><span class="switch-track" aria-hidden="true"></span>
+            </label>
+            <label class="toggle-row" for="anchorSwitch">
+              <span><strong>Edge anchors</strong><small>Dots in the margins that drift with the car's turns and braking</small></span>
+              <input type="checkbox" id="anchorSwitch" checked role="switch"><span class="switch-track" aria-hidden="true"></span>
+            </label>
           </section>
           <details class="panel content-panel">
             <summary><span><span class="overline">03 / YOUR WORDS</span><strong>Read your own text</strong></span><span aria-hidden="true">＋</span></summary>
@@ -103,7 +128,7 @@
           </details>
         </aside>
       </div>
-      <section class="notes"><div><span class="overline">BEFORE YOU TEST</span><h2>What the experiment can—and can't—do</h2></div><p>The accelerometer measures acceleration, not the motion of your eyes. FloatRead uses a bounded spring-and-damper response to soften brief jolts; it cannot perfectly lock text to your gaze. Use it only as a passenger, never while driving.</p></section>
+      <section class="notes"><div><span class="overline">BEFORE YOU TEST</span><h2>What the experiment can—and can't—do</h2></div><p>The accelerometer measures acceleration, not the motion of your eyes. FloatRead integrates the sensed jolts into a small, bounded counter-shift (high-pass filtered so slow turns and braking don't drag the page) and shows margin dots that drift with the car's motion; it cannot perfectly lock text to your gaze. Use it only as a passenger, never while driving.</p></section>
     </main>
     <footer><span>FLOATREAD · OPEN EXPERIMENT</span><span>Runs locally in your browser · <a href="https://github.com/coolchan03/Stable-Reading" target="_blank" rel="noopener noreferrer">Source on GitHub</a></span></footer>
   </div>
