@@ -1,6 +1,6 @@
 /* Offline support for FloatRead, network-first so updates appear immediately. */
-const CACHE = 'floatread-v5-20261110';
-const FILES = ['./', './index.html', './styles.css', './app.js', './icon.svg', './manifest.webmanifest'];
+const CACHE = 'floatread-v6-20261110';
+const FILES = ['./', './index.html', './styles.css', './app.js', './floatread-core.js', './floatread-face.js', './icon.svg', './manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
 });
