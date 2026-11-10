@@ -19,6 +19,8 @@ If Chrome sends no sensor events, go to **Chrome Settings → Site settings → 
 
 - Live accelerometer motion via the browser's devicemotion API, with a Generic Sensor API (LinearAccelerationSensor) fallback.
 - Gravity removal fallback when only gravity-inclusive readings are available.
+- Band-limited correction with a soft dead-band (ignores tiny jitter), presets, and an experimental RLS predictor.
+- Record raw motion on a ride, download it, and replay it later to tune the sliders against real bumps.
 - Orientation-aware axes, bounded spring response, adjustable strength and damping.
 - Motion-source status, event frequency and live acceleration readouts.
 - Simulated road bumps, manual bumps and a reset/recalibration button.

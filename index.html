@@ -18,7 +18,7 @@
       <a class="brand" href="./" aria-label="FloatRead home">
         <span class="mark" aria-hidden="true">≋</span><span>Float<span class="brand-light">Read</span></span>
       </a>
-      <span class="eyebrow-header">A reading experiment <span class="version">v0.3</span></span>
+      <span class="eyebrow-header">A reading experiment <span class="version">v0.4</span></span>
     </header>
     <main>
       <div class="intro">
@@ -80,6 +80,15 @@
               <span><strong>Stabilization</strong><small>Compare with the effect turned off</small></span>
               <input type="checkbox" id="stabilizationSwitch" checked role="switch"><span class="switch-track" aria-hidden="true"></span>
             </label>
+            <div class="range-group preset-row">
+              <div class="range-heading"><label for="preset">Preset</label></div>
+              <select id="preset">
+                <option value="smooth">Smooth road</option>
+                <option value="rough">Rough road</option>
+                <option value="sway">Bus / train sway</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
             <div class="range-group">
               <div class="range-heading"><label for="compensation">Compensation</label><output id="compensationOutput">100%</output></div>
               <input id="compensation" type="range" min="0" max="250" step="5" value="100">
@@ -94,6 +103,21 @@
               <div class="range-heading"><label for="smoothness">Bump filter</label><output id="smoothnessOutput">85%</output></div>
               <input id="smoothness" type="range" min="30" max="160" step="5" value="85">
               <p>Lower = react only to quick bumps. Higher = also follow slower sways.</p>
+            </div>
+            <div class="range-group">
+              <div class="range-heading"><label for="cutoff">Fast-bump cutoff</label><output id="cutoffOutput">8 Hz</output></div>
+              <input id="cutoff" type="range" min="2" max="12" step="0.5" value="8">
+              <p>Ignore vibration faster than this. Lower = calmer but misses sharp jolts.</p>
+            </div>
+            <div class="range-group">
+              <div class="range-heading"><label for="predict">Prediction (experimental)</label><output id="predictOutput">0%</output></div>
+              <input id="predict" type="range" min="0" max="100" step="5" value="0">
+              <p>Guesses a few milliseconds ahead to offset sensor delay. Helped in isolation but not yet in simulation of the full pipeline, so it is off by default. Try it on a replayed ride.</p>
+            </div>
+            <div class="range-group">
+              <div class="range-heading"><label for="deadband">Ignore tiny jitter</label><output id="deadbandOutput">1.5 px</output></div>
+              <input id="deadband" type="range" min="0" max="4" step="0.5" value="1.5">
+              <p>Movements smaller than this are left alone; bigger bumps get full correction.</p>
             </div>
             <div class="range-group compact-range">
               <div class="range-heading"><label for="fontSize">Text size</label><output id="fontSizeOutput">18 px</output></div>
@@ -117,6 +141,15 @@
               <input type="checkbox" id="anchorSwitch" checked role="switch"><span class="switch-track" aria-hidden="true"></span>
             </label>
           </section>
+          <details class="panel content-panel">
+            <summary><span><span class="overline">04 / REAL-RIDE DATA</span><strong>Record &amp; replay a ride</strong></span><span aria-hidden="true">＋</span></summary>
+            <div class="content-inner">
+              <p class="helptext" style="margin-top:0">Record raw motion data on the ride, then replay it at home and tune the sliders against the real bumps. Data stays on your device; downloading it is optional.</p>
+              <div class="action-grid"><button class="button secondary" id="recordButton" type="button" aria-pressed="false">● Record ride</button><button class="button secondary" id="downloadTrace" type="button">Download trace</button></div>
+              <div class="action-grid small-actions"><button class="button lowkey" id="replayButton" type="button">Load trace to replay</button></div>
+              <input type="file" id="traceInput" accept=".json,application/json" hidden>
+            </div>
+          </details>
           <details class="panel content-panel">
             <summary><span><span class="overline">03 / YOUR WORDS</span><strong>Read your own text</strong></span><span aria-hidden="true">＋</span></summary>
             <div class="content-inner">
