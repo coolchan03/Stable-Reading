@@ -2,16 +2,18 @@
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var reader = $('readerSurface'), content = $('readerContent'), body = document.body;
+  var reader = $('readerSurface'), content = $('readerContent'), body = document.body, anchors = $('anchorDots');
   var state = {
     active: true, demo: false, live: false, listening: false, attempted: false,
     ax: 0, ay: 0, gx: 0, gy: 0, hasGravity: false, lastSensor: 0,
-    lastRawTime: 0, lastFrame: 0, x: 0, y: 0, vx: 0, vy: 0,
+    lastRawTime: 0, lastFrame: 0, x: 0, y: 0, vx: 0, vy: 0, impX: 0, impY: 0, slowX: 0, slowY: 0, hx: 0, hy: 0, hvx: 0, hvy: 0,
     pulseX: 0, pulseY: 0, events: 0, eventWindow: 0, frequency: 0, uiTime: 0,
     source: 'idle', lastKnown: '', emptyEvents: 0, genericSensor: null, sensorError: ''
   };
-  var settingKeys = { compensation: 70, smoothness: 85, fontSize: 18 };
-  var storagePrefix = 'floatread-v2-';
+  var settingKeys = { compensation: 100, sideBoost: 100, smoothness: 85, fontSize: 20 };
+  var PX_PER_METER = 6000; // ~160 CSS px per inch, typical for phones
+  var LEAD = .012;         // seconds of look-ahead to offset render latency
+  var storagePrefix = 'floatread-v3-';
   function storageGet(key) {
     try { return localStorage.getItem(storagePrefix + key); } catch (_) { return null; }
   }
@@ -32,7 +34,7 @@
     else setBadge('idle', 'Not connected');
   }
   function resetMotion() {
-    state.x = state.y = state.vx = state.vy = 0;
+    state.x = state.y = state.vx = state.vy = state.impX = state.impY = state.slowX = state.slowY = state.hx = state.hy = state.hvx = state.hvy = 0;
     state.pulseX = state.pulseY = 0;
     state.gx = state.gy = 0;
     state.hasGravity = false;
@@ -72,6 +74,11 @@
     var axes = screenAligned ? { x: x, y: y } : orientAxes(x, y);
     state.ax = clamp(axes.x, -16, 16);
     state.ay = clamp(axes.y, -16, 16);
+    // Exact integration regardless of how events line up with animation frames.
+    var gap = (now - (state.lastRawTime || now)) / 1000;
+    var idt = gap > .1 ? 0 : clamp(gap || .016, .004, .05);
+    state.impX += (Math.abs(state.ax) < .03 ? 0 : state.ax) * idt;
+    state.impY += (Math.abs(state.ay) < .03 ? 0 : state.ay) * idt;
     state.lastRawTime = state.lastSensor = now;
     state.events += 1;
     if (!state.live) {
@@ -187,40 +194,55 @@
   }
   function animate(now) {
     if (!state.lastFrame) state.lastFrame = now;
-    var dt = clamp((now - state.lastFrame) / 1000, 0, .033);
+    var dt = clamp((now - state.lastFrame) / 1000, 0, .05);
     state.lastFrame = now;
-    var ax = 0, ay = 0;
+    // Acceleration impulses collected from sensor events since the last frame (m/s).
+    var dvx = state.impX, dvy = state.impY;
+    state.impX = state.impY = 0;
     if (state.demo) {
       var t = now / 1000;
-      ax = .6 * Math.sin(t * 4.2) + 2.8 * Math.sin(t * 12.1) * Math.pow(Math.sin(t * .7), 4);
-      ay = 1.1 * Math.sin(t * 7.8) + 4.3 * Math.sin(t * 15.2) * Math.pow(Math.sin(t * .46), 6);
-    } else if (state.live && now - state.lastSensor < 350) {
-      ax = state.ax; ay = state.ay;
+      dvx += (.6 * Math.sin(t * 4.2) + 2.8 * Math.sin(t * 12.1) * Math.pow(Math.sin(t * .7), 4)) * dt;
+      dvy += (1.1 * Math.sin(t * 7.8) + 4.3 * Math.sin(t * 15.2) * Math.pow(Math.sin(t * .46), 6)) * dt;
     }
-    ax += state.pulseX; ay += state.pulseY;
+    dvx += state.pulseX * dt; dvy += state.pulseY * dt;
     var decay = Math.exp(-dt * 6.2);
     state.pulseX *= decay; state.pulseY *= decay;
-    if (Math.abs(ax) < .045) ax = 0;
-    if (Math.abs(ay) < .045) ay = 0;
-    // A damped, bounded mass on a spring. Never double-integrate unbounded position.
-    var gain = 880 * Number($('compensation').value) / 100;
-    var omega = 10.8;
-    var zeta = Number($('smoothness').value) / 100;
-    state.vx += (-gain * ax - 2 * zeta * omega * state.vx - omega * omega * state.x) * dt;
-    state.vy += (gain * ay - 2 * zeta * omega * state.vy - omega * omega * state.y) * dt;
-    state.x += state.vx * dt; state.y += state.vy * dt;
-    var max = 29;
-    if (state.x > max || state.x < -max) { state.x = clamp(state.x, -max, max); state.vx = 0; }
-    if (state.y > max || state.y < -max) { state.y = clamp(state.y, -max, max); state.vy = 0; }
-    var px = state.active ? state.x : 0;
-    var py = state.active ? state.y : 0;
+    var ax = dt > 0 ? dvx / dt : 0, ay = dt > 0 ? dvy / dt : 0;
+    // Leaky double integration = 2nd-order high-pass: quick bumps become a real displacement,
+    // slow sustained accelerations (braking, cornering) leak away and never push the page off-screen.
+    var tau = Number($('smoothness').value) / 100 * .1;
+    var leak = Math.exp(-dt / tau);
+    state.vx = (state.vx + dvx) * leak;
+    state.vy = (state.vy + dvy) * leak;
+    state.x = (state.x + state.vx * dt) * leak;
+    state.y = (state.y + state.vy * dt) * leak;
+    // Final high-pass on position and velocity removes the steady shift a sustained acceleration would leave.
+    var hp = 1 - Math.exp(-dt / .1);
+    state.hx += (state.x - state.hx) * hp; state.hy += (state.y - state.hy) * hp;
+    state.hvx += (state.vx - state.hvx) * hp; state.hvy += (state.vy - state.hvy) * hp;
+    var ox = state.x - state.hx, oy = state.y - state.hy;
+    var ovx = state.vx - state.hvx, ovy = state.vy - state.hvy;
+    var lead = LEAD + (state.live ? Math.min((now - state.lastSensor) / 1000, .02) : 0);
+    var k = PX_PER_METER * Number($('compensation').value) / 100;
+    var kx = k * Number($('sideBoost').value) / 100;
+    var lim = 30;
+    var px = state.active ? lim * Math.tanh(-(ox + ovx * lead) * kx / lim) : 0;
+    var py = state.active ? lim * Math.tanh((oy + ovy * lead) * k / lim) : 0;
     reader.style.transform = 'translate3d(' + px.toFixed(2) + 'px,' + py.toFixed(2) + 'px,0)';
+    // Edge anchors move with the slow part of the vehicle's acceleration (cornering, braking).
+    var sa = 1 - Math.exp(-dt / .45);
+    state.slowX += (ax - state.slowX) * sa;
+    state.slowY += (ay - state.slowY) * sa;
+    if (anchors) {
+      var adx = clamp(-state.slowX * 4, -14, 14), ady = clamp(state.slowY * 4, -14, 14);
+      anchors.style.transform = 'translate3d(' + adx.toFixed(1) + 'px,' + ady.toFixed(1) + 'px,0)';
+    }
     if (!state.eventWindow) state.eventWindow = now;
     if (now - state.eventWindow >= 1000) {
       state.frequency = Math.round(state.events * 1000 / (now - state.eventWindow));
       state.events = 0; state.eventWindow = now;
     }
-    updateMetrics(now, ax, ay, px, py);
+    updateMetrics(now, state.live ? state.ax : ax, state.live ? state.ay : ay, px, py);
     requestAnimationFrame(animate);
   }
   function setText(text) {
@@ -245,7 +267,7 @@
   function bindSettings() {
     Object.keys(settingKeys).forEach(function (key) {
       var input = $(key);
-      var previous = Number(storageGet(key));
+      var saved = storageGet(key), previous = saved === null ? NaN : Number(saved);
       if (previous >= Number(input.min) && previous <= Number(input.max)) input.value = previous;
       var render = function () {
         $(key + 'Output').textContent = input.value + (key === 'fontSize' ? ' px' : '%');
@@ -254,6 +276,17 @@
       };
       input.addEventListener('input', render); render();
     });
+    var fontSel = $('fontFamily'), fonts = fontSel.options;
+    var savedFont = storageGet('font');
+    for (var i = 0; i < fonts.length; i++) if (fonts[i].value === savedFont) fontSel.value = savedFont;
+    var applyFont = function () { reader.style.setProperty('--reader-font', fontSel.value); storageSet('font', fontSel.value); };
+    fontSel.addEventListener('change', applyFont); applyFont();
+    var bold = $('boldText'); bold.checked = storageGet('bold') !== 'false';
+    var applyBold = function () { reader.style.setProperty('--reader-weight', bold.checked ? '500' : '400'); storageSet('bold', bold.checked); };
+    bold.addEventListener('change', applyBold); applyBold();
+    var anchorSwitch = $('anchorSwitch'); anchorSwitch.checked = storageGet('anchors') !== 'false';
+    var applyAnchors = function () { $('anchorLayer').hidden = !anchorSwitch.checked; storageSet('anchors', anchorSwitch.checked); };
+    anchorSwitch.addEventListener('change', applyAnchors); applyAnchors();
     state.active = storageGet('enabled') !== 'false';
     $('stabilizationSwitch').checked = state.active;
     $('stabilizationSwitch').addEventListener('change', function (event) {
@@ -294,7 +327,7 @@
     });
     window.addEventListener('pagehide', function () { state.lastFrame = 0; });
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) { state.lastFrame = 0; state.vx = state.vy = 0; }
+      if (document.hidden) { state.lastFrame = 0; state.vx = state.vy = state.impX = state.impY = state.hx = state.hy = state.hvx = state.hvy = 0; }
     });
   }
   function initialize() {
