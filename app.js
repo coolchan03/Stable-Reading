@@ -8,7 +8,7 @@
     ax: 0, ay: 0, gx: 0, gy: 0, hasGravity: false, lastSensor: 0,
     lastRawTime: 0, lastFrame: 0, x: 0, y: 0, vx: 0, vy: 0,
     pulseX: 0, pulseY: 0, events: 0, eventWindow: 0, frequency: 0, uiTime: 0,
-    source: 'idle', lastKnown: ''
+    source: 'idle', lastKnown: '', emptyEvents: 0, genericSensor: null, sensorError: ''
   };
   var settingKeys = { compensation: 70, smoothness: 85, fontSize: 18 };
   var storagePrefix = 'floatread-v2-';
@@ -59,32 +59,63 @@
     return { x: x, y: y };
   }
   function numberOrNull(value) { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
-  function processMotion(event) {
+  function ingest(x, y, isLinear, screenAligned, source) {
     var now = performance.now();
-    var a = event.acceleration, x = a && numberOrNull(a.x), y = a && numberOrNull(a.y);
-    var hasLinear = x !== null && y !== null;
     var dt = clamp((now - (state.lastRawTime || now)) / 1000, .008, .16);
-    if (!hasLinear) {
-      a = event.accelerationIncludingGravity;
-      x = a && numberOrNull(a.x); y = a && numberOrNull(a.y);
-      if (x === null || y === null) return;
+    if (!isLinear) {
       if (!state.hasGravity) { state.gx = x; state.gy = y; state.hasGravity = true; }
       var alpha = 1 - Math.exp(-dt / .62);
       state.gx += (x - state.gx) * alpha;
       state.gy += (y - state.gy) * alpha;
       x -= state.gx; y -= state.gy;
     }
-    var axes = orientAxes(x, y);
+    var axes = screenAligned ? { x: x, y: y } : orientAxes(x, y);
     state.ax = clamp(axes.x, -16, 16);
     state.ay = clamp(axes.y, -16, 16);
     state.lastRawTime = state.lastSensor = now;
     state.events += 1;
     if (!state.live) {
       state.live = true;
+      state.source = source;
       $('enableSensors').textContent = 'Sensors connected';
-      setMessage('Receiving live motion readings. Gently move the phone and watch the axes change.');
+      setMessage('Receiving live motion readings (' + source + '). Gently move the phone and watch the axes change.');
       updateSourceDisplay();
     }
+  }
+  function processMotion(event) {
+    var a = event.acceleration, x = a && numberOrNull(a.x), y = a && numberOrNull(a.y);
+    if (x !== null && y !== null) return ingest(x, y, true, false, 'devicemotion');
+    a = event.accelerationIncludingGravity;
+    x = a && numberOrNull(a.x); y = a && numberOrNull(a.y);
+    if (x === null || y === null) { state.emptyEvents += 1; return; }
+    ingest(x, y, false, false, 'devicemotion + gravity filter');
+  }
+  // Fallback for Chrome/Android builds where devicemotion arrives empty: the Generic Sensor API.
+  function startGenericSensor() {
+    var name = 'LinearAccelerationSensor' in window ? 'LinearAccelerationSensor' : ('Accelerometer' in window ? 'Accelerometer' : null);
+    if (!name || state.live || state.genericSensor) return;
+    try {
+      var linear = name === 'LinearAccelerationSensor';
+      var sensor = new window[name]({ frequency: 60, referenceFrame: 'screen' });
+      sensor.addEventListener('reading', function () {
+        if (sensor.x == null || sensor.y == null) return;
+        ingest(sensor.x, sensor.y, linear, true, linear ? 'Generic Sensor (linear)' : 'Generic Sensor + gravity filter');
+      });
+      sensor.addEventListener('error', function (e) {
+        state.sensorError = (e.error && e.error.name) || 'error';
+      });
+      sensor.start();
+      state.genericSensor = sensor;
+    } catch (err) {
+      state.sensorError = err && err.name || 'error';
+    }
+  }
+  function noDataMessage() {
+    var reason = state.sensorError === 'NotAllowedError' || state.sensorError === 'SecurityError'
+      ? 'The browser blocked motion sensors for this site. '
+      : state.emptyEvents ? 'The browser sent motion events with no values (sensors blocked or missing). '
+      : 'No motion events arrived. ';
+    return reason + 'On Android, open the page directly in Chrome (not an in-app browser), check Chrome → Settings → Site settings → Motion sensors, make sure Android\'s "Motion sensors" / battery saver is not blocking it, reload, then tap Retry. On a computer without sensors this is expected - use the simulation.';
   }
   function trySensors() {
     if (state.live) {
@@ -113,13 +144,14 @@
         window.addEventListener('devicemotion', processMotion, { passive: true });
         state.listening = true;
       }
+      window.setTimeout(function () { if (!state.live) startGenericSensor(); }, 1500);
       window.setTimeout(function () {
         if (!state.live) {
           $('enableSensors').textContent = 'Retry sensors';
           if (!state.demo) updateSourceDisplay();
-          setMessage('No motion data arrived. Open this URL directly in Chrome (not inside ChatGPT). In Chrome, check Settings → Site settings → Motion sensors, then retry. Some devices or browsers restrict this API.');
+          setMessage(noDataMessage());
         }
-      }, 4000);
+      }, 4500);
     };
     try {
       if (typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -151,7 +183,7 @@
     updateGauge('xBar', ax); updateGauge('yBar', ay);
     $('shiftReadout').textContent = Math.hypot(px, py).toFixed(1) + ' px offset';
     $('frequencyReadout').textContent = state.frequency + ' events/sec';
-    $('motionType').textContent = state.demo ? 'Simulation' : state.live ? 'Live · sensor motion' : 'No live readings';
+    $('motionType').textContent = state.demo ? 'Simulation' : state.live ? 'Live · ' + state.source : 'No live readings';
   }
   function animate(now) {
     if (!state.lastFrame) state.lastFrame = now;
