@@ -21,6 +21,7 @@ If Chrome sends no sensor events, go to **Chrome Settings → Site settings → 
 - Gravity removal fallback when only gravity-inclusive readings are available.
 - Band-limited correction with a soft dead-band (ignores tiny jitter), presets, and an experimental RLS predictor.
 - Record raw motion on a ride, download it, and replay it later to tune the sliders against real bumps.
+- Large, roomy reading typography by default (24 px, heavier weight, wide spacing/margins) with Atkinson Hyperlegible Next bundled; camera tracking is protected against bump blur.
 - Orientation-aware axes, bounded spring response, adjustable strength and damping.
 - Motion-source status, event frequency and live acceleration readouts.
 - Simulated road bumps, manual bumps and a reset/recalibration button.

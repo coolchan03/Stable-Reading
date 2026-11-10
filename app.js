@@ -5,9 +5,10 @@
   var reader = $('readerSurface'), content = $('readerContent'), body = document.body;
   var fr = FloatRead.create({ element: reader, anchorElement: $('anchorDots') });
   var face = null, uiTime = 0;
-  var settingKeys = { compensation: 100, sideBoost: 100, smoothness: 85, cutoff: 8, predict: 0, deadband: 1.5, head: 100, fontSize: 20 };
-  var suffixes = { fontSize: ' px', cutoff: ' Hz', deadband: ' px' };
-  var storagePrefix = 'floatread-v4-';
+  var settingKeys = { compensation: 100, sideBoost: 100, smoothness: 85, cutoff: 8, predict: 0, deadband: 1.5, head: 100, fontSize: 24, lineHeight: 2, letterSpacing: 3, sideMargin: 44 };
+  var suffixes = { fontSize: ' px', cutoff: ' Hz', deadband: ' px', letterSpacing: '%', sideMargin: ' px', lineHeight: '' };
+  var typeVars = { fontSize: ['--reader-font-size', function (v) { return v + 'px'; }], lineHeight: ['--reader-lh', function (v) { return v; }], letterSpacing: ['--reader-ls', function (v) { return (v / 100) + 'em'; }], sideMargin: ['--reader-pad-x', function (v) { return v + 'px'; }] };
+  var storagePrefix = 'floatread-v5-';
   function storageGet(key) { try { return localStorage.getItem(storagePrefix + key); } catch (_) { return null; } }
   function storageSet(key, value) { try { localStorage.setItem(storagePrefix + key, String(value)); } catch (_) {} }
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
@@ -79,12 +80,12 @@
       var render = function () {
         $(key + 'Output').textContent = input.value + (suffixes[key] || '%');
         storageSet(key, input.value);
-        if (key === 'fontSize') reader.style.setProperty('--reader-font-size', input.value + 'px');
+        if (typeVars[key]) reader.style.setProperty(typeVars[key][0], typeVars[key][1](input.value));
         else applySliders();
       };
       input.addEventListener('input', function () {
         render();
-        if (key !== 'fontSize' && FloatRead.PRESETS[$('preset').value]) { $('preset').value = 'custom'; storageSet('preset', 'custom'); }
+        if (!typeVars[key] && FloatRead.PRESETS[$('preset').value]) { $('preset').value = 'custom'; storageSet('preset', 'custom'); }
       });
       render();
     });
@@ -102,7 +103,7 @@
     var applyFont = function () { reader.style.setProperty('--reader-font', fontSel.value); storageSet('font', fontSel.value); };
     fontSel.addEventListener('change', applyFont); applyFont();
     var bold = $('boldText'); bold.checked = storageGet('bold') !== 'false';
-    var applyBold = function () { reader.style.setProperty('--reader-weight', bold.checked ? '500' : '400'); storageSet('bold', bold.checked); };
+    var applyBold = function () { reader.style.setProperty('--reader-weight', bold.checked ? '560' : '400'); storageSet('bold', bold.checked); };
     bold.addEventListener('change', applyBold); applyBold();
     var anchorSwitch = $('anchorSwitch'); anchorSwitch.checked = storageGet('anchors') !== 'false';
     var applyAnchors = function () { $('anchorLayer').hidden = !anchorSwitch.checked; storageSet('anchors', anchorSwitch.checked); };
@@ -193,6 +194,7 @@
   function initialize() {
     bindSettings(); bindActions();
     var custom = storageGet('text');
+    if (!custom) { try { custom = localStorage.getItem('floatread-v4-text'); } catch (_) {} }
     if (custom) { $('customText').value = custom; setText(custom); }
     if (!window.isSecureContext) setMessage('A secure HTTPS origin is required for motion sensors. Open the GitHub Pages URL in Chrome.');
     window.floatread = fr; // handy for experimenting from the console

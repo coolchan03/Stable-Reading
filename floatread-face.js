@@ -30,10 +30,22 @@
     if (!stab || typeof stab.setHeadOffset !== 'function') throw new Error('FloatReadFace: pass { stabilizer }');
     var assets = Object.assign({}, ASSETS, options.assets || {});
     var listeners = {}, video = null, stream = null, landmarker = null, running = false, lastTime = -1, startPromise = null;
-    var lastFaceAt = 0;
+    var lastFaceAt = 0, sharpRef = 0, canvas = null, ctx2 = null, ema = null, jumpRun = 0;
 
     function emit(name, data) { (listeners[name] || []).slice().forEach(function (fn) { try { fn(data); } catch (_) {} }); }
 
+    // Cheap sharpness score (mean gradient on a tiny grayscale copy). A bump blurs the frame; blurry frames
+    // give unreliable landmarks, so they are dropped relative to the recent sharpest level.
+    function sharpness() {
+      if (!canvas) { canvas = document.createElement('canvas'); canvas.width = 96; canvas.height = 72; ctx2 = canvas.getContext('2d', { willReadFrequently: true }); }
+      ctx2.drawImage(video, 0, 0, 96, 72);
+      var d = ctx2.getImageData(0, 0, 96, 72).data, sum = 0, n = 0;
+      for (var y = 0; y < 72; y += 2) for (var x = 0; x < 95; x++) {
+        var i = (y * 96 + x) * 4;
+        sum += Math.abs(d[i] - d[i + 4]) + Math.abs(d[i + 1] - d[i + 5]); n++;
+      }
+      return sum / n;
+    }
     function process(result) {
       var lm = result && result.faceLandmarks && result.faceLandmarks[0];
       if (!lm || lm.length < 400) { emit('face', { found: false }); return; }
@@ -42,6 +54,15 @@
       var eyePx = Math.hypot((a.x - b.x) * w, (a.y - b.y) * h);
       if (!(eyePx > 8)) return;
       var u = (a.x + b.x) / 2, v = (a.y + b.y) / 2;      // midpoint between the eyes, normalized
+      var sharp = sharpness();
+      sharpRef = Math.max(sharp, sharpRef * .995);
+      if (sharp < sharpRef * (options.minSharpness || .65)) { emit('face', { found: true, rejected: 'blur' }); return; }
+      // Reject implausible one-frame jumps (motion blur / mis-detections); re-lock if it persists.
+      if (ema) {
+        var jump = Math.hypot(u - ema.u, v - ema.v), scale = Math.abs(eyePx - ema.eye) / ema.eye;
+        if ((jump > .06 || scale > .15) && ++jumpRun < 4) { emit('face', { found: true, rejected: 'jump' }); return; }
+      }
+      jumpRun = 0; ema = { u: u, v: v, eye: eyePx };
       var mPerPx = EYE_CORNER_M / eyePx;
       // Front-camera frames are not mirrored: the user's right is the image's left.
       var xm = -(u - .5) * w * mPerPx, ym = (v - .5) * h * mPerPx;
