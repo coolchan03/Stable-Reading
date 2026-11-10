@@ -17,7 +17,7 @@ If Chrome sends no sensor events, go to **Chrome Settings → Site settings → 
 
 ## Features
 
-- Live accelerometer motion via the browser's devicemotion API.
+- Live accelerometer motion via the browser's devicemotion API, with a Generic Sensor API (LinearAccelerationSensor) fallback.
 - Gravity removal fallback when only gravity-inclusive readings are available.
 - Orientation-aware axes, bounded spring response, adjustable strength and damping.
 - Motion-source status, event frequency and live acceleration readouts.
@@ -34,7 +34,11 @@ An accelerometer cannot directly observe the position of the user's eyes, and ac
 
 ## Deploy
 
-Static site. GitHub Pages settings: **Deploy from a branch → main → /(root)**. The root index.html is the entrypoint; no build or package manager required. All app files should live together.
+Static site, no build step. One-time setup (the workflow cannot do this itself because the default token may not create a Pages site):
+
+1. In the GitHub repo go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**.
+2. Re-run the *Deploy FloatRead to GitHub Pages* workflow (Actions tab) or push to `main`.
+3. The site appears at https://coolchan03.github.io/Stable-Reading/ (note the capital S and R).
 
 ## Local development
 
