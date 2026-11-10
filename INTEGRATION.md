@@ -54,7 +54,9 @@ Record and replay real rides: `recordStart()`, `recordStop()`, `getTrace()` (JSO
   await face.start();   // asks for camera permission, downloads the model once
 </script>
 ```
-Video is processed on the device and never uploaded. Self-host the MediaPipe files with
+Video is processed on the device and never uploaded. Because a bump blurs the camera frame, the camera estimate is
+protected two ways: the core freezes it during and 300 ms after any jolt the accelerometer reports, and the face module
+drops blurry frames (low sharpness) and implausible one-frame jumps. During a bump the accelerometer path does the work. Self-host the MediaPipe files with
 `FloatReadFace.create({ stabilizer: fr, assets: { module, wasm, model } })`.
 
 ## How it works, and its limits
@@ -69,5 +71,8 @@ Video is processed on the device and never uploaded. Self-host the MediaPipe fil
 
 ## Typography
 There is no scientifically proven best font for reading under vibration. The one vibration-specific study we found
-(Industrial Health, 2010) rated Arial easier than Times New Roman; larger and heavier type matters more. The demo
-defaults to a clear sans-serif at 20 px with slightly heavier weight and open letter spacing.
+(Industrial Health, 2010) rated Arial easier than Times New Roman; larger and heavier type matters more than the
+typeface. The demo therefore defaults to large text (24 px), heavier weight, generous line spacing (2.0), open letter
+spacing and wide side margins (also so text never clips while shifting). The default typeface is Atkinson
+Hyperlegible Next (SIL OFL, bundled in `fonts/`), designed for distinguishable letterforms; a Roboto/Arial option
+(the typeface from the study), Verdana, serif and monospace are available. All spacing is adjustable.

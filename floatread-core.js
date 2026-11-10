@@ -294,14 +294,20 @@
       // Head tracking: slow (<~1.5 Hz) eye-vs-screen motion from a camera. The accelerometer path above
       // cannot see this band, so the two are complementary.
       var hd = st.head, hx = 0, hy = 0;
+      // A bump blurs the camera frame exactly when it matters most, so hold the camera estimate through
+      // (and shortly after) any jolt the accelerometer reports. The accelerometer path covers those moments.
+      if (Math.hypot(ax, ay) > 2.5) st.bumpUntil = t + 300;
+      var frozen = t < (st.bumpUntil || 0);
       if (hd.has) {
         var age = t - hd.t;
         var target = age < 400 ? hd.w : 0;
         hd.fade = (hd.fade || 0) + (target - (hd.fade || 0)) * (1 - Math.exp(-dt / .25));
-        var bl = 1 - Math.exp(-dt / 3);                       // slow baseline = your normal posture
-        hd.bx += (hd.x - hd.bx) * bl; hd.by += (hd.y - hd.by) * bl;
-        var hl = 1 - Math.exp(-dt / (1 / (2 * Math.PI * 1.5)));
-        hd.lx += ((hd.x - hd.bx) - hd.lx) * hl; hd.ly += ((hd.y - hd.by) - hd.ly) * hl;
+        if (!frozen) {
+          var bl = 1 - Math.exp(-dt / 3);                     // slow baseline = your normal posture
+          hd.bx += (hd.x - hd.bx) * bl; hd.by += (hd.y - hd.by) * bl;
+          var hl = 1 - Math.exp(-dt / (1 / (2 * Math.PI * 1.5)));
+          hd.lx += ((hd.x - hd.bx) - hd.lx) * hl; hd.ly += ((hd.y - hd.by) - hd.ly) * hl;
+        }
         var hk = pxPerMeter * s.head / 100 * hd.fade;
         hx = hd.lx * hk; hy = hd.ly * hk;
       }
@@ -372,7 +378,7 @@
       getOffset: function () { return { x: st.px, y: st.py }; },
       getMetrics: function () {
         return { live: st.live, source: st.demo ? 'simulation' : st.source, simulating: st.demo, eventsPerSecond: st.frequency, ax: st.lastAx || 0, ay: st.lastAy || 0,
-          px: st.px, py: st.py, recording: st.recording, traceLength: st.trace.length, replaying: st.replaying, headTracking: st.head.has && (st.head.fade || 0) > .05 };
+          px: st.px, py: st.py, recording: st.recording, traceLength: st.trace.length, replaying: st.replaying, headTracking: st.head.has && (st.head.fade || 0) > .05, headFrozen: performance.now() < (st.bumpUntil || 0) };
       },
       getStatus: function () { return st.status || { state: 'idle', source: 'idle', message: '', code: '' }; },
       on: function (name, fn) { (listeners[name] = listeners[name] || []).push(fn); return function () { listeners[name] = (listeners[name] || []).filter(function (f) { return f !== fn; }); }; },
