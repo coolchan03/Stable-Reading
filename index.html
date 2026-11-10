@@ -10,6 +10,8 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./styles.css">
+  <script src="./floatread-core.js" defer></script>
+  <script src="./floatread-face.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -18,7 +20,7 @@
       <a class="brand" href="./" aria-label="FloatRead home">
         <span class="mark" aria-hidden="true">≋</span><span>Float<span class="brand-light">Read</span></span>
       </a>
-      <span class="eyebrow-header">A reading experiment <span class="version">v0.4</span></span>
+      <span class="eyebrow-header">A reading experiment <span class="version">v0.5</span></span>
     </header>
     <main>
       <div class="intro">
@@ -80,6 +82,10 @@
               <span><strong>Stabilization</strong><small>Compare with the effect turned off</small></span>
               <input type="checkbox" id="stabilizationSwitch" checked role="switch"><span class="switch-track" aria-hidden="true"></span>
             </label>
+            <label class="toggle-row" for="headSwitch">
+              <span><strong>Head tracking (camera)</strong><small>Uses the front camera to follow your face and catch slow sway. Processed on-device. <span id="headState">Off</span></small></span>
+              <input type="checkbox" id="headSwitch" role="switch"><span class="switch-track" aria-hidden="true"></span>
+            </label>
             <div class="range-group preset-row">
               <div class="range-heading"><label for="preset">Preset</label></div>
               <select id="preset">
@@ -103,6 +109,11 @@
               <div class="range-heading"><label for="smoothness">Bump filter</label><output id="smoothnessOutput">85%</output></div>
               <input id="smoothness" type="range" min="30" max="160" step="5" value="85">
               <p>Lower = react only to quick bumps. Higher = also follow slower sways.</p>
+            </div>
+            <div class="range-group">
+              <div class="range-heading"><label for="head">Head tracking strength</label><output id="headOutput">100%</output></div>
+              <input id="head" type="range" min="0" max="200" step="10" value="100">
+              <p>How much the page follows your face moving relative to the screen.</p>
             </div>
             <div class="range-group">
               <div class="range-heading"><label for="cutoff">Fast-bump cutoff</label><output id="cutoffOutput">8 Hz</output></div>

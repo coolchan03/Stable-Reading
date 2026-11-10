@@ -25,7 +25,9 @@ If Chrome sends no sensor events, go to **Chrome Settings → Site settings → 
 - Motion-source status, event frequency and live acceleration readouts.
 - Simulated road bumps, manual bumps and a reset/recalibration button.
 - Focus reading mode, text size control and local .txt/.md import.
-- Local-only settings/text storage, no third-party scripts or analytics.
+- Local-only settings/text storage, no analytics. Optional camera head tracking loads MediaPipe from a CDN only if you turn it on.
+- Reusable core: `floatread-core.js` (and optional `floatread-face.js`) can be dropped into other apps. See [INTEGRATION.md](INTEGRATION.md).
+- Optional front-camera head tracking for slow sway the accelerometer cannot see (on-device, opt-in).
 - Service worker for offline reuse after the first successful HTTPS load.
 
 ## What it cannot do

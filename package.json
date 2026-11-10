@@ -1,0 +1,9 @@
+{
+  "name": "floatread",
+  "version": "1.0.0",
+  "description": "Motion-stabilized reading for moving vehicles: a dependency-free core you can drop into any web app.",
+  "main": "floatread-core.js",
+  "files": ["floatread-core.js", "floatread-face.js", "INTEGRATION.md"],
+  "license": "UNLICENSED",
+  "private": true
+}
